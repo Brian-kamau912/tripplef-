@@ -1,0 +1,1475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f766e" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="MerryGoRound" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+  <title>Merry-Go-Round Group</title>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <style>
+    :root {
+      --primary: #0d9488; --primary-dark: #0f766e; --accent: #f59e0b;
+      --danger: #dc2626; --success: #16a34a; --card: #fff; --text: #134e4a; --border: #99f6e4;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(135deg, #ccfbf1 0%, #f0fdfa 50%, #fef3c7 100%);
+      min-height: 100vh; color: var(--text);
+    }
+    .hidden { display: none !important; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 1rem; }
+    #auth-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .auth-card {
+      background: var(--card); border-radius: 1.25rem; box-shadow: 0 20px 50px rgba(13,148,136,.15);
+      padding: 2.5rem; width: 100%; max-width: 440px; border: 1px solid var(--border);
+    }
+    .auth-card h1 { text-align: center; color: var(--primary-dark); margin-bottom: .25rem; font-size: 1.75rem; }
+    .auth-card .subtitle { text-align: center; color: #64748b; margin-bottom: 1.5rem; font-size: .95rem; }
+    .tabs { display: flex; gap: .5rem; margin-bottom: 1.5rem; }
+    .tabs button {
+      flex: 1; padding: .7rem; border: 2px solid var(--border); background: transparent;
+      border-radius: .75rem; cursor: pointer; font-weight: 600; color: var(--text);
+    }
+    .tabs button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; margin-bottom: .35rem; font-weight: 600; font-size: .9rem; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; padding: .75rem 1rem; border: 2px solid var(--border); border-radius: .75rem; font-size: 1rem;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      outline: none; border-color: var(--primary);
+    }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
+      padding: .75rem 1.25rem; border: none; border-radius: .75rem; font-weight: 600;
+      cursor: pointer; font-size: .95rem;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-accent { background: var(--accent); color: #78350f; }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
+    .btn-sm { padding: .4rem .8rem; font-size: .85rem; }
+    .btn-block { width: 100%; }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+    .msg { padding: .85rem 1rem; border-radius: .75rem; margin-bottom: 1rem; font-size: .9rem; }
+    .msg-info { background: #e0f2fe; color: #0369a1; }
+    .msg-success { background: #dcfce7; color: #166534; }
+    .msg-error { background: #fee2e2; color: #991b1b; }
+    .msg-warning { background: #fef3c7; color: #92400e; }
+    #app { display: none; }
+    header { background: var(--primary-dark); color: #fff; padding: 1rem 0; box-shadow: 0 4px 20px rgba(0,0,0,.1); }
+    header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .75rem; }
+    header h1 { font-size: 1.35rem; }
+    .user-info { display: flex; align-items: center; gap: 1rem; font-size: .95rem; }
+    .avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,.6); background: #99f6e4; }
+    .avatar-sm { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; vertical-align: middle; margin-right: .4rem; background: #ccfbf1; }
+    .avatar-lg { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); background: #ccfbf1; display: block; margin: 0 auto 1rem; }
+    .avatar-placeholder {
+      display: inline-flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: #fff; font-weight: 700;
+    }
+    nav { background: #fff; border-bottom: 2px solid var(--border); padding: .5rem 0; position: sticky; top: 0; z-index: 50; }
+    nav .container { display: flex; gap: .35rem; flex-wrap: wrap; }
+    nav button {
+      padding: .55rem 1rem; border: none; background: transparent; border-radius: .5rem;
+      cursor: pointer; font-weight: 600; color: var(--text); font-size: .9rem;
+    }
+    nav button.active, nav button:hover { background: var(--primary); color: #fff; }
+    main { padding: 1.5rem 0 3rem; }
+    .panel {
+      background: var(--card); border-radius: 1rem; padding: 1.5rem; margin-bottom: 1.25rem;
+      box-shadow: 0 4px 20px rgba(13,148,136,.08); border: 1px solid var(--border);
+    }
+    .panel h2 { color: var(--primary-dark); margin-bottom: 1rem; font-size: 1.25rem; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 700px) { .grid-2 { grid-template-columns: 1fr; } }
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    th, td { padding: .7rem .6rem; text-align: left; border-bottom: 1px solid var(--border); }
+    th { background: #f0fdfa; font-weight: 700; color: var(--primary-dark); }
+    .badge { display: inline-block; padding: .2rem .55rem; border-radius: 999px; font-size: .75rem; font-weight: 700; }
+    .badge-pending { background: #fef3c7; color: #92400e; }
+    .badge-approved { background: #dcfce7; color: #166534; }
+    .badge-declined { background: #fee2e2; color: #991b1b; }
+    .stat-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
+    .stat-card {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: #fff;
+      padding: 1.25rem; border-radius: 1rem; text-align: center;
+    }
+    .stat-card .value { font-size: 1.75rem; font-weight: 800; }
+    .stat-card .label { font-size: .85rem; opacity: .9; margin-top: .25rem; }
+    .list-item {
+      display: flex; align-items: center; gap: .75rem; padding: .75rem;
+      border: 1px solid var(--border); border-radius: .75rem; margin-bottom: .5rem; background: #f8fffe;
+    }
+    .list-item input[type="checkbox"] { width: 1.25rem; height: 1.25rem; accent-color: var(--primary); }
+    .list-item.ticked { background: #dcfce7; border-color: #86efac; }
+    .list-item.expired { opacity: .65; }
+    .news-item {
+      border-left: 4px solid var(--primary); padding: .85rem 1rem; background: #f0fdfa;
+      border-radius: 0 .75rem .75rem 0; margin-bottom: .75rem;
+    }
+    .news-item .meta { font-size: .8rem; color: #64748b; margin-bottom: .35rem; }
+    .calc-box { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+    .calc-result {
+      grid-column: 1 / -1; background: #f0fdfa; padding: 1rem; border-radius: .75rem;
+      text-align: center; font-size: 1.25rem; font-weight: 700; color: var(--primary-dark);
+    }
+    .empty { text-align: center; color: #94a3b8; padding: 2rem; font-style: italic; }
+    footer { text-align: center; padding: 1.5rem; color: #64748b; font-size: .85rem; }
+    .multi-count { background: var(--accent); color: #78350f; font-size: .7rem; padding: .15rem .4rem; border-radius: 999px; margin-left: .35rem; }
+    #loading-overlay {
+      position: fixed; inset: 0; background: rgba(15,118,110,.35); display: flex;
+      align-items: center; justify-content: center; z-index: 999; color: #fff; font-weight: 700;
+    }
+    #config-banner {
+      background: #fef3c7; color: #92400e; padding: 1rem; text-align: center; font-weight: 600;
+      border-bottom: 2px solid #f59e0b;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="config-banner" class="hidden">
+    ⚠️ Firebase is not configured. Open this file, find <code>firebaseConfig</code> near the top of the script, and paste your keys from the Firebase Console.
+  </div>
+
+  <div id="loading-overlay" class="hidden">Loading…</div>
+
+  <!-- AUTH -->
+  <div id="auth-screen">
+    <div class="auth-card">
+      <h1>🎠 Merry-Go-Round</h1>
+      <p class="subtitle">Shared group portal (Firebase)</p>
+      <div class="tabs">
+        <button type="button" class="active" data-tab="login">Login</button>
+        <button type="button" data-tab="signup">Sign Up</button>
+      </div>
+      <div id="login-form">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="login-email" placeholder="you@email.com" autocomplete="email" />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" />
+        </div>
+        <button class="btn btn-primary btn-block" id="btn-login" onclick="doLogin()">Login</button>
+      </div>
+      <div id="signup-form" class="hidden">
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="signup-fullname" placeholder="Your full name" />
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="signup-email" placeholder="you@email.com" />
+        </div>
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" id="signup-username" placeholder="Choose a username" />
+        </div>
+        <div class="form-group">
+          <label>Password (min 6 characters)</label>
+          <input type="password" id="signup-password" placeholder="Password" />
+        </div>
+        <div class="form-group">
+          <label>Phone (optional)</label>
+          <input type="text" id="signup-phone" placeholder="07XX XXX XXX" />
+        </div>
+        <button class="btn btn-primary btn-block" id="btn-signup" onclick="doSignup()">Create Account</button>
+      </div>
+      <div id="auth-message" class="hidden" style="margin-top:1rem;"></div>
+      <p style="margin-top:1rem;font-size:.8rem;color:#64748b;text-align:center;">
+        First time? Create the Treasurer account in Firebase (see setup notes at bottom of page source).
+      </p>
+    </div>
+  </div>
+
+  <!-- APP -->
+  <div id="app">
+    <header>
+      <div class="container">
+        <h1>🎠 Merry-Go-Round Group</h1>
+        <div class="user-info">
+          <img id="header-avatar" class="avatar hidden" alt="" />
+          <span id="header-user"></span>
+          <button class="btn btn-sm btn-outline" style="color:#fff;border-color:rgba(255,255,255,.5);" onclick="logout()">Logout</button>
+        </div>
+      </div>
+    </header>
+    <nav><div class="container" id="nav-buttons"></div></nav>
+    <main class="container">
+      <div id="view-dashboard" class="view">
+        <div id="welcome-banner" class="msg msg-success" style="margin-bottom:1rem;font-size:1.1rem;"></div>
+        <div class="stat-cards" id="dash-stats"></div>
+        <div class="panel"><h2>📢 Latest News</h2><div id="dash-news"></div></div>
+        <div class="panel hidden" id="dash-pending-payout"><h2>💰 Current Payout Order</h2><div id="dash-payout-content"></div></div>
+      </div>
+
+      <div id="view-balance" class="view hidden">
+        <div class="panel">
+          <h2>💵 My Savings & Balance</h2>
+          <div class="stat-cards" id="my-balance-stats"></div>
+          <p style="margin-top:1rem;color:#64748b;font-size:.9rem;">
+            Weekly target: <strong id="weekly-target-label">KSh 20</strong>. Submit amount → admin accepts or declines.
+          </p>
+          <h3 style="margin:1.25rem 0 .75rem;color:var(--primary-dark);">Submit Contribution</h3>
+          <div class="grid-2">
+            <div class="form-group"><label>Amount (KSh)</label><input type="number" id="member-savings-amount" value="20" min="1" /></div>
+            <div class="form-group"><label>Note</label><input type="text" id="member-savings-note" placeholder="e.g. Week 12" /></div>
+          </div>
+          <button class="btn btn-primary" onclick="memberSubmitSavings()">Submit for Admin Approval</button>
+          <h3 style="margin:1.5rem 0 .75rem;color:var(--primary-dark);">Pending</h3>
+          <div id="pending-confirmations"></div>
+          <h3 style="margin:1.25rem 0 .75rem;color:var(--primary-dark);">History</h3>
+          <div id="savings-history"></div>
+        </div>
+      </div>
+
+      <div id="view-withdraw" class="view hidden">
+        <div class="panel">
+          <h2>🏦 Withdraw Savings</h2>
+          <div class="stat-cards" id="withdraw-balance-stats"></div>
+          <p style="margin:1rem 0;color:#64748b;font-size:.9rem;">Needs Treasurer + Chairperson approval. Amount deducted when both approve.</p>
+          <div class="grid-2">
+            <div class="form-group"><label>Amount (KSh)</label><input type="number" id="withdraw-amount" min="1" /></div>
+            <div class="form-group"><label>Note</label><input type="text" id="withdraw-note" /></div>
+          </div>
+          <button class="btn btn-accent" onclick="requestWithdrawal()">Request Withdrawal</button>
+          <div id="withdraw-error" class="hidden" style="margin-top:.75rem;"></div>
+          <h3 style="margin:1.5rem 0 .75rem;color:var(--primary-dark);">My Requests</h3>
+          <div id="my-withdrawals"></div>
+        </div>
+      </div>
+
+      <div id="view-profile" class="view hidden">
+        <div class="panel">
+          <h2 id="profile-title">👤 My Profile</h2>
+          <div id="profile-incomplete-msg" class="msg msg-warning hidden">Complete your profile (name, email, phone, ID, location) to continue.</div>
+          <div style="text-align:center;margin-bottom:1rem;">
+            <img id="profile-avatar-preview" class="avatar-lg" alt="" style="display:none;" />
+            <div id="profile-avatar-placeholder" class="avatar-lg avatar-placeholder" style="font-size:2rem;">?</div>
+          </div>
+          <div class="form-group"><label>Profile picture (paste image URL or skip)</label><input type="url" id="profile-pic-url" placeholder="https://..." /></div>
+          <button class="btn btn-outline btn-sm" onclick="saveProfilePictureUrl()">Save Picture URL</button>
+          <hr style="margin:1.25rem 0;border:none;border-top:1px solid var(--border);">
+          <h3 style="margin-bottom:.75rem;color:var(--primary-dark);">Personal Details</h3>
+          <div class="grid-2">
+            <div class="form-group"><label>Full Name *</label><input type="text" id="profile-fullname" /></div>
+            <div class="form-group"><label>Email *</label><input type="email" id="profile-email" /></div>
+            <div class="form-group"><label>Phone *</label><input type="text" id="profile-phone" /></div>
+            <div class="form-group"><label>Second Phone</label><input type="text" id="profile-phone2" /></div>
+            <div class="form-group"><label>ID Number *</label><input type="text" id="profile-idnumber" /></div>
+            <div class="form-group"><label>Location *</label><input type="text" id="profile-location" /></div>
+          </div>
+          <button class="btn btn-primary" onclick="saveProfileInfo()">Save Profile Details</button>
+          <hr style="margin:1.25rem 0;border:none;border-top:1px solid var(--border);">
+          <h3 style="margin-bottom:.75rem;color:var(--primary-dark);">Change Password</h3>
+          <div class="form-group"><label>New password</label><input type="password" id="pw-new-self" /></div>
+          <div class="form-group"><label>Confirm</label><input type="password" id="pw-confirm" /></div>
+          <button class="btn btn-primary" onclick="changeOwnPassword()">Update Password</button>
+        </div>
+      </div>
+
+      <div id="view-payout-order" class="view hidden">
+        <div class="panel"><h2>📋 Payout Order</h2><div id="member-payout-list"></div></div>
+      </div>
+
+      <div id="view-contribute" class="view hidden">
+        <div class="panel">
+          <h2>✅ Contribution Checklist</h2>
+          <p style="color:#64748b;margin-bottom:1rem;font-size:.9rem;">Lists assigned to you by admin. Active 5 days, then locked.</p>
+          <div id="contribute-controls"></div>
+        </div>
+      </div>
+
+      <div id="view-questions" class="view hidden">
+        <div class="panel">
+          <h2>❓ Ask Admin</h2>
+          <div class="form-group"><label>Question</label><textarea id="question-text" rows="3"></textarea></div>
+          <button class="btn btn-primary" onclick="submitQuestion()">Send</button>
+          <h3 style="margin:1.5rem 0 .75rem;">My Questions</h3>
+          <div id="my-questions"></div>
+        </div>
+      </div>
+
+      <div id="view-news" class="view hidden">
+        <div class="panel"><h2>📰 News</h2><div id="news-list"></div></div>
+      </div>
+
+      <div id="view-calculator" class="view hidden">
+        <div class="panel">
+          <h2>🧮 Calculator</h2>
+          <div class="calc-box">
+            <div class="form-group"><label>Amount 1</label><input type="number" id="calc-a" value="20" /></div>
+            <div class="form-group"><label>Amount 2</label><input type="number" id="calc-b" value="11" /></div>
+            <div class="form-group"><label>Operation</label>
+              <select id="calc-op">
+                <option value="add">Add</option><option value="sub">Subtract</option>
+                <option value="mul">Multiply</option><option value="div">Divide</option>
+                <option value="total">Weekly total</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" onclick="runCalc()">Calculate</button>
+            <div class="calc-result" id="calc-result">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADMIN -->
+      <div id="view-admin-members" class="view hidden">
+        <div class="panel">
+          <h2>👥 Members <span id="members-count-badge" class="badge badge-approved"></span></h2>
+          <div id="pending-approvals" style="margin-bottom:1.5rem;"></div>
+          <div id="admin-add-member-box">
+            <h3 style="margin-bottom:.75rem;color:var(--primary-dark);">Add Member (creates login)</h3>
+            <div class="grid-2">
+              <div class="form-group"><label>Full Name</label><input id="admin-add-fullname" /></div>
+              <div class="form-group"><label>Email</label><input type="email" id="admin-add-email" /></div>
+              <div class="form-group"><label>Username</label><input id="admin-add-username" /></div>
+              <div class="form-group"><label>Password</label><input id="admin-add-password" type="text" /></div>
+            </div>
+            <button class="btn btn-primary" onclick="adminAddMember()">Add & Approve Member</button>
+            <p style="font-size:.8rem;color:#64748b;margin-top:.5rem;">Note: Creating users from the admin panel requires Firebase Admin SDK on a server. For now, members should Sign Up, then you Approve them here.</p>
+          </div>
+          <h3 style="margin:1.5rem 0 .75rem;">All Members (<span id="members-count-text">0</span>)</h3>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead><tr><th>#</th><th>Name</th><th>Email / Username</th><th>Status</th><th>Savings</th><th>Actions</th></tr></thead>
+              <tbody id="members-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="view-admin-member-details" class="view hidden">
+        <div class="panel">
+          <h2>📇 Members Details</h2>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Phone</th><th>Phone2</th><th>ID</th><th>Location</th><th>Profile</th></tr></thead>
+              <tbody id="member-details-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="view-admin-savings" class="view hidden">
+        <div class="panel">
+          <h2>💰 Savings Approvals</h2>
+          <div id="admin-pending-savings"></div>
+          <h3 style="margin:1.5rem 0 .75rem;">Totals</h3>
+          <div style="overflow-x:auto;">
+            <table><thead><tr><th>Member</th><th>Total (KSh)</th></tr></thead><tbody id="admin-savings-table"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <div id="view-admin-withdrawals" class="view hidden">
+        <div class="panel">
+          <h2>🏦 Withdrawal Approvals</h2>
+          <p style="color:#64748b;margin-bottom:1rem;font-size:.9rem;">Treasurer and Chairperson must both approve.</p>
+          <div id="admin-pending-withdrawals"></div>
+          <h3 style="margin:1.5rem 0 .75rem;">Past</h3>
+          <div id="admin-past-withdrawals"></div>
+        </div>
+      </div>
+
+      <div id="view-admin-payout" class="view hidden">
+        <div class="panel">
+          <h2>📋 Payout Order</h2>
+          <div class="form-group"><label>Title</label><input id="payout-title" placeholder="Round name" /></div>
+          <div style="overflow-x:auto;margin-bottom:1rem;">
+            <table>
+              <thead><tr><th>#</th><th>Name</th><th>Expected date</th><th></th></tr></thead>
+              <tbody id="payout-builder-body"></tbody>
+            </table>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="addPayoutRow()">+ Add Row</button>
+          <button class="btn btn-primary" style="margin-left:.5rem;" onclick="uploadPayoutList()">Upload List</button>
+          <div id="current-payout-admin" style="margin-top:1.5rem;"></div>
+        </div>
+      </div>
+
+      <div id="view-admin-contributions" class="view hidden">
+        <div class="panel">
+          <h2>✅ Contribution Lists</h2>
+          <div class="form-group"><label>Title</label><input id="admin-contrib-title" /></div>
+          <div class="form-group"><label>Assign to receiver</label><select id="admin-contrib-receiver"></select></div>
+          <div class="form-group"><label>Names (one per line; repeat for double)</label><textarea id="admin-contrib-names" rows="6"></textarea></div>
+          <button class="btn btn-primary" onclick="adminCreateContribList()">Create & Assign</button>
+          <hr style="margin:1.5rem 0;border:none;border-top:1px solid var(--border);">
+          <div id="admin-contrib-lists"></div>
+        </div>
+      </div>
+
+      <div id="view-admin-questions" class="view hidden">
+        <div class="panel"><h2>❓ Questions</h2><div id="admin-questions-list"></div></div>
+      </div>
+
+      <div id="view-admin-news" class="view hidden">
+        <div class="panel">
+          <h2>📰 Post News</h2>
+          <div class="form-group"><label>Title</label><input id="news-title" /></div>
+          <div class="form-group"><label>Content</label><textarea id="news-content" rows="3"></textarea></div>
+          <button class="btn btn-primary" onclick="postNews()">Publish</button>
+          <h3 style="margin:1.5rem 0 .75rem;">Published</h3>
+          <div id="admin-news-list"></div>
+        </div>
+      </div>
+
+      <div id="view-admin-settings" class="view hidden">
+        <div class="panel">
+          <h2>⚙️ Settings</h2>
+          <div class="form-group" style="max-width:280px;">
+            <label>Weekly contribution (KSh)</label>
+            <input type="number" id="setting-weekly" min="1" />
+          </div>
+          <button class="btn btn-primary" onclick="saveSettings()">Save</button>
+          <p id="settings-status" style="margin-top:.75rem;color:#166534;"></p>
+        </div>
+      </div>
+    </main>
+    <footer>Merry-Go-Round · Firebase shared data</footer>
+  </div>
+
+  <div id="modal-root"></div>
+
+  <script>
+    // ============================================================
+    // PASTE YOUR FIREBASE CONFIG HERE (from Firebase Console)
+    // ============================================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyA3KJWlJUIDgDmK96qONXd0j3nNssFam4I",
+      authDomain: "triplef-15b20.firebaseapp.com",
+      projectId: "triplef-15b20",
+      storageBucket: "triplef-15b20.firebasestorage.app",
+      messagingSenderId: "367275971127",
+      appId: "1:367275971127:web:997fe46acae91e1456a5b2"
+    };
+    // ============================================================
+
+    const CONFIG_OK = firebaseConfig.apiKey && !firebaseConfig.apiKey.includes('YOUR_');
+    if (!CONFIG_OK) {
+      document.getElementById('config-banner').classList.remove('hidden');
+    }
+
+    let auth, db;
+    let currentUser = null; // Firestore user profile
+    let unsubUsers = null;
+
+    function initFirebase() {
+      if (!CONFIG_OK) return false;
+      try {
+        firebase.initializeApp(firebaseConfig);
+        auth = firebase.auth();
+        db = firebase.firestore();
+        return true;
+      } catch (e) {
+        console.error(e);
+        document.getElementById('config-banner').classList.remove('hidden');
+        document.getElementById('config-banner').textContent = 'Firebase init error: ' + e.message;
+        return false;
+      }
+    }
+
+    function setLoading(on) {
+      document.getElementById('loading-overlay').classList.toggle('hidden', !on);
+    }
+    function toast(text, type = 'success') {
+      const root = document.getElementById('modal-root');
+      const div = document.createElement('div');
+      div.className = 'msg msg-' + type;
+      div.style.cssText = 'position:fixed;top:1rem;right:1rem;z-index:200;max-width:320px;box-shadow:0 8px 30px rgba(0,0,0,.15);';
+      div.textContent = text;
+      root.appendChild(div);
+      setTimeout(() => div.remove(), 3500);
+    }
+    function showMsg(id, text, type) {
+      const el = document.getElementById(id);
+      el.className = 'msg msg-' + type;
+      el.textContent = text;
+      el.classList.remove('hidden');
+    }
+    function escapeHtml(s) {
+      if (!s) return '';
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    function fmtDate(ts) {
+      if (!ts) return '—';
+      const d = ts.toDate ? ts.toDate() : new Date(ts);
+      return d.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+    function getFirstName(n) { return (n || 'Member').trim().split(/\s+/)[0]; }
+    function daysLeft(iso) {
+      const ms = new Date(iso) - new Date();
+      return Math.max(0, Math.ceil(ms / 86400000));
+    }
+    function isExpired(iso) { return new Date() > new Date(iso); }
+
+    // ---------- AUTH UI ----------
+    document.querySelectorAll('.tabs button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const tab = btn.dataset.tab;
+        document.getElementById('login-form').classList.toggle('hidden', tab !== 'login');
+        document.getElementById('signup-form').classList.toggle('hidden', tab !== 'signup');
+        document.getElementById('auth-message').classList.add('hidden');
+      });
+    });
+
+    async function doSignup() {
+      if (!CONFIG_OK) { showMsg('auth-message', 'Configure Firebase first.', 'error'); return; }
+      const fullName = document.getElementById('signup-fullname').value.trim();
+      const email = document.getElementById('signup-email').value.trim().toLowerCase();
+      const username = document.getElementById('signup-username').value.trim();
+      const password = document.getElementById('signup-password').value;
+      const phone = document.getElementById('signup-phone').value.trim();
+      if (!fullName || !email || !username || !password) {
+        showMsg('auth-message', 'Fill all required fields.', 'error'); return;
+      }
+      if (password.length < 6) {
+        showMsg('auth-message', 'Password must be at least 6 characters.', 'error'); return;
+      }
+      setLoading(true);
+      try {
+        const cred = await auth.createUserWithEmailAndPassword(email, password);
+        await db.collection('users').doc(cred.user.uid).set({
+          uid: cred.user.uid,
+          email,
+          username,
+          fullName,
+          role: 'member',
+          approved: false,
+          phone: phone || '',
+          phone2: '',
+          idNumber: '',
+          location: '',
+          savings: 0,
+          profilePicture: null,
+          profileComplete: false,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        await auth.signOut();
+        showMsg('auth-message', `Karibu ${getFirstName(fullName)}! Account created. Wait for Treasurer or Chairperson to approve you, then log in.`, 'warning');
+        document.getElementById('signup-form').querySelectorAll('input').forEach(i => i.value = '');
+      } catch (e) {
+        showMsg('auth-message', e.message || 'Signup failed', 'error');
+      }
+      setLoading(false);
+    }
+
+    async function doLogin() {
+      if (!CONFIG_OK) { showMsg('auth-message', 'Configure Firebase first.', 'error'); return; }
+      const email = document.getElementById('login-email').value.trim().toLowerCase();
+      const password = document.getElementById('login-password').value;
+      if (!email || !password) {
+        showMsg('auth-message', 'Enter email and password.', 'error'); return;
+      }
+      setLoading(true);
+      try {
+        await auth.signInWithEmailAndPassword(email, password);
+        // onAuthStateChanged will enter app
+      } catch (e) {
+        showMsg('auth-message', e.message || 'Login failed', 'error');
+        setLoading(false);
+      }
+    }
+
+    async function logout() {
+      if (unsubUsers) { unsubUsers(); unsubUsers = null; }
+      await auth.signOut();
+      currentUser = null;
+      document.getElementById('app').style.display = 'none';
+      document.getElementById('auth-screen').style.display = 'flex';
+    }
+
+    async function loadUserProfile(uid) {
+      const snap = await db.collection('users').doc(uid).get();
+      if (!snap.exists) throw new Error('User profile missing in Firestore. Create users/{uid} document.');
+      const data = snap.data();
+      data.id = snap.id;
+      return data;
+    }
+
+    async function ensureSettings() {
+      const ref = db.collection('settings').doc('main');
+      const snap = await ref.get();
+      if (!snap.exists) {
+        await ref.set({ weeklyContribution: 20 });
+        return { weeklyContribution: 20 };
+      }
+      return snap.data();
+    }
+
+    let settingsCache = { weeklyContribution: 20 };
+    function getWeeklyAmount() { return settingsCache.weeklyContribution || 20; }
+
+    function enterApp() {
+      document.getElementById('auth-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      const roleLabel = currentUser.role === 'admin' ? '💰 Treasurer: '
+        : currentUser.role === 'chairperson' ? '🪑 Chairperson: ' : '👤 ';
+      document.getElementById('header-user').textContent = roleLabel + (currentUser.fullName || '');
+      const img = document.getElementById('header-avatar');
+      if (currentUser.profilePicture) {
+        img.src = currentUser.profilePicture;
+        img.classList.remove('hidden');
+      } else {
+        img.classList.add('hidden');
+      }
+      buildNav();
+      const banner = document.getElementById('welcome-banner');
+      if (banner) {
+        banner.textContent = `Karibu ${getFirstName(currentUser.fullName)}! Welcome to the Merry-Go-Round portal.`;
+      }
+      if (currentUser.role === 'member' && !currentUser.profileComplete) {
+        showView('profile');
+        toast('Please complete your profile.', 'warning');
+      } else {
+        showView('dashboard');
+      }
+      setLoading(false);
+    }
+
+    function buildNav() {
+      const role = currentUser.role;
+      let items = [];
+      if (role === 'admin') {
+        items = [
+          ['dashboard','Dashboard'],['admin-members','Members'],['admin-member-details','Members Details'],
+          ['admin-savings','Savings'],['admin-withdrawals','Withdrawals'],['admin-payout','Payout List'],
+          ['admin-contributions','Contributions'],['admin-questions','Questions'],['admin-news','News'],
+          ['admin-settings','Settings'],['profile','My Account'],['calculator','Calculator']
+        ];
+      } else if (role === 'chairperson') {
+        items = [
+          ['dashboard','Dashboard'],['admin-members','Members'],['admin-member-details','Members Details'],
+          ['admin-withdrawals','Withdrawals'],['admin-savings','Savings'],['profile','My Account'],
+          ['news','News'],['calculator','Calculator']
+        ];
+      } else {
+        items = [
+          ['dashboard','Dashboard'],['balance','My Balance'],['withdraw','Withdraw'],['profile','My Profile'],
+          ['payout-order','Payout Order'],['contribute','Contribution List'],['questions','Ask Admin'],
+          ['news','News'],['calculator','Calculator']
+        ];
+      }
+      document.getElementById('nav-buttons').innerHTML = items.map(([id,label]) =>
+        `<button type="button" data-view="${id}" onclick="showView('${id}')">${label}</button>`
+      ).join('');
+    }
+
+    function showView(name) {
+      if (currentUser && currentUser.role === 'member' && !currentUser.profileComplete && name !== 'profile') {
+        name = 'profile';
+        toast('Please complete your profile first.', 'warning');
+      }
+      document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+      const el = document.getElementById('view-' + name);
+      if (el) el.classList.remove('hidden');
+      document.querySelectorAll('#nav-buttons button').forEach(b => {
+        b.classList.toggle('active', b.dataset.view === name);
+      });
+      refreshView(name);
+    }
+
+    async function refreshView(name) {
+      try {
+        settingsCache = await ensureSettings();
+        if (name === 'dashboard') await renderDashboard();
+        else if (name === 'balance') await renderMyBalance();
+        else if (name === 'withdraw') await renderWithdraw();
+        else if (name === 'profile') await renderProfile();
+        else if (name === 'payout-order') await renderPayoutOrderMember();
+        else if (name === 'contribute') await renderContribute();
+        else if (name === 'questions') await renderMyQuestions();
+        else if (name === 'news') await renderNews();
+        else if (name === 'admin-members') await renderAdminMembers();
+        else if (name === 'admin-member-details') await renderMemberDetails();
+        else if (name === 'admin-savings') await renderAdminSavings();
+        else if (name === 'admin-withdrawals') await renderAdminWithdrawals();
+        else if (name === 'admin-payout') await renderAdminPayout();
+        else if (name === 'admin-contributions') await renderAdminContributions();
+        else if (name === 'admin-questions') await renderAdminQuestions();
+        else if (name === 'admin-news') await renderAdminNews();
+        else if (name === 'admin-settings') renderAdminSettings();
+      } catch (e) {
+        console.error(e);
+        toast(e.message || 'Load error', 'error');
+      }
+    }
+
+    // ---------- DASHBOARD ----------
+    async function renderDashboard() {
+      const usersSnap = await db.collection('users').where('role', '==', 'member').get();
+      const members = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const approved = members.filter(m => m.approved);
+      const pending = members.filter(m => !m.approved).length;
+      const totalSav = approved.reduce((s, m) => s + (m.savings || 0), 0);
+      const stats = document.getElementById('dash-stats');
+      if (currentUser.role === 'admin' || currentUser.role === 'chairperson') {
+        stats.innerHTML = `
+          <div class="stat-card"><div class="value">${approved.length}</div><div class="label">Active Members</div></div>
+          <div class="stat-card"><div class="value">${pending}</div><div class="label">Pending Approvals</div></div>
+          <div class="stat-card"><div class="value">${totalSav}</div><div class="label">Total Savings (KSh)</div></div>
+          <div class="stat-card"><div class="value">${getWeeklyAmount()}</div><div class="label">Weekly Target</div></div>`;
+      } else {
+        stats.innerHTML = `
+          <div class="stat-card"><div class="value">${currentUser.savings || 0}</div><div class="label">My Savings (KSh)</div></div>
+          <div class="stat-card"><div class="value">${approved.length}</div><div class="label">Group Members</div></div>
+          <div class="stat-card"><div class="value">${getWeeklyAmount()}</div><div class="label">Weekly Target</div></div>`;
+      }
+      const newsSnap = await db.collection('news').orderBy('createdAt', 'desc').limit(3).get();
+      const newsEl = document.getElementById('dash-news');
+      if (newsSnap.empty) newsEl.innerHTML = '<p class="empty">No news yet.</p>';
+      else newsEl.innerHTML = newsSnap.docs.map(d => {
+        const n = d.data();
+        return `<div class="news-item"><div class="meta">${fmtDate(n.createdAt)}</div><strong>${escapeHtml(n.title)}</strong>
+          <p style="margin-top:.35rem;font-size:.9rem;">${escapeHtml((n.content||'').slice(0,120))}</p></div>`;
+      }).join('');
+      const paySnap = await db.collection('meta').doc('payoutList').get();
+      const payPanel = document.getElementById('dash-pending-payout');
+      if (paySnap.exists && paySnap.data().order && paySnap.data().order.length) {
+        const pl = paySnap.data();
+        payPanel.classList.remove('hidden');
+        document.getElementById('dash-payout-content').innerHTML =
+          `<p><strong>${escapeHtml(pl.title)}</strong></p>
+           <ol style="margin:.75rem 0 0 1.25rem;">${pl.order.slice(0,5).map(o => `<li>${escapeHtml(o.name)}${o.expectedDate ? ' — ' + o.expectedDate : ''}</li>`).join('')}</ol>`;
+      } else payPanel.classList.add('hidden');
+    }
+
+    // ---------- MEMBERS (ADMIN) ----------
+    async function renderAdminMembers() {
+      const isAdmin = currentUser.role === 'admin';
+      const box = document.getElementById('admin-add-member-box');
+      if (box) box.style.display = isAdmin ? 'block' : 'none';
+
+      const snap = await db.collection('users').where('role', '==', 'member').get();
+      const members = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const pending = members.filter(m => !m.approved);
+
+      let html = '';
+      if (pending.length) {
+        html += `<h3 style="margin-bottom:.75rem;color:#92400e;">⏳ Pending Approvals (${pending.length})</h3>`;
+        html += pending.map(u => `
+          <div class="list-item">
+            <div style="flex:1;">
+              <strong>${escapeHtml(u.fullName)}</strong> · ${escapeHtml(u.email || '')} · @${escapeHtml(u.username || '')}
+              <div style="font-size:.8rem;color:#64748b;">${fmtDate(u.createdAt)}</div>
+            </div>
+            <button class="btn btn-success btn-sm" onclick="approveMember('${u.id}')">Accept</button>
+            <button class="btn btn-danger btn-sm" onclick="declineMember('${u.id}')">Decline</button>
+          </div>`).join('');
+      } else {
+        html = '<p class="empty">No pending approvals. When members sign up on any device, they appear here.</p>';
+      }
+      document.getElementById('pending-approvals').innerHTML = html;
+
+      const approvedCount = members.filter(m => m.approved).length;
+      document.getElementById('members-count-badge').textContent = approvedCount + ' active';
+      document.getElementById('members-count-text').textContent = members.length;
+      const tbody = document.getElementById('members-table-body');
+      if (!members.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty">No members</td></tr>';
+        return;
+      }
+      tbody.innerHTML = members.map((u, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${escapeHtml(u.fullName)}</td>
+          <td>${escapeHtml(u.email)}<br><small>@${escapeHtml(u.username || '')}</small></td>
+          <td>${u.approved ? '<span class="badge badge-approved">Approved</span>' : '<span class="badge badge-pending">Pending</span>'}</td>
+          <td>${u.savings || 0}</td>
+          <td>${u.approved && isAdmin ? `<button class="btn btn-danger btn-sm" onclick="deleteMemberDoc('${u.id}')">Delete</button>` : ''}</td>
+        </tr>`).join('');
+    }
+
+    async function approveMember(id) {
+      await db.collection('users').doc(id).update({ approved: true });
+      toast('Member approved!');
+      renderAdminMembers();
+      renderDashboard();
+    }
+
+    async function declineMember(id) {
+      if (!confirm('Decline and remove this member profile? (Auth account may still exist)')) return;
+      await db.collection('users').doc(id).delete();
+      toast('Removed.');
+      renderAdminMembers();
+    }
+
+    async function deleteMemberDoc(id) {
+      if (!confirm('Delete this member profile from Firestore?')) return;
+      await db.collection('users').doc(id).delete();
+      toast('Deleted.');
+      renderAdminMembers();
+    }
+
+    async function adminAddMember() {
+      toast('To add members with password, ask them to Sign Up, then Approve. Direct create needs a Cloud Function.', 'warning');
+    }
+
+    async function renderMemberDetails() {
+      const snap = await db.collection('users').where('role', '==', 'member').get();
+      const members = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const tbody = document.getElementById('member-details-body');
+      if (!members.length) {
+        tbody.innerHTML = '<tr><td colspan="8" class="empty">No members</td></tr>';
+        return;
+      }
+      tbody.innerHTML = members.map((u, i) => `
+        <tr>
+          <td>${i+1}</td><td>${escapeHtml(u.fullName||'—')}</td><td>${escapeHtml(u.email||'—')}</td>
+          <td>${escapeHtml(u.phone||'—')}</td><td>${escapeHtml(u.phone2||'—')}</td>
+          <td>${escapeHtml(u.idNumber||'—')}</td><td>${escapeHtml(u.location||'—')}</td>
+          <td>${u.profileComplete ? '<span class="badge badge-approved">Complete</span>' : '<span class="badge badge-pending">Incomplete</span>'}</td>
+        </tr>`).join('');
+    }
+
+    // ---------- SAVINGS ----------
+    async function renderMyBalance() {
+      const weekly = getWeeklyAmount();
+      const label = document.getElementById('weekly-target-label');
+      if (label) label.textContent = 'KSh ' + weekly;
+      document.getElementById('member-savings-amount').value = weekly;
+      document.getElementById('my-balance-stats').innerHTML =
+        `<div class="stat-card"><div class="value">${currentUser.savings || 0}</div><div class="label">Accepted Savings</div></div>`;
+
+      const snap = await db.collection('savingsRecords').where('userId', '==', currentUser.id).get();
+      const records = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const pending = records.filter(r => r.status === 'pending');
+      const hist = records.filter(r => r.status === 'confirmed').sort((a,b) => (b.confirmedAt?.seconds||0) - (a.confirmedAt?.seconds||0));
+
+      document.getElementById('pending-confirmations').innerHTML = pending.length
+        ? pending.map(r => `<div class="list-item"><div style="flex:1;"><strong>KSh ${r.amount}</strong> · ${escapeHtml(r.note||'')}
+            <div style="font-size:.8rem;color:#64748b;">${fmtDate(r.createdAt)}</div></div>
+            <span class="badge badge-pending">Awaiting admin</span></div>`).join('')
+        : '<p class="empty">No pending submissions.</p>';
+
+      document.getElementById('savings-history').innerHTML = hist.length
+        ? `<table><thead><tr><th>Date</th><th>Amount</th><th>Note</th></tr></thead><tbody>
+            ${hist.map(r => `<tr><td>${fmtDate(r.confirmedAt||r.createdAt)}</td><td>KSh ${r.amount}</td><td>${escapeHtml(r.note||'—')}</td></tr>`).join('')}
+           </tbody></table>`
+        : '<p class="empty">No accepted savings yet.</p>';
+    }
+
+    async function memberSubmitSavings() {
+      const amount = parseFloat(document.getElementById('member-savings-amount').value);
+      const note = document.getElementById('member-savings-note').value.trim();
+      if (!amount || amount <= 0) { toast('Enter a valid amount.', 'error'); return; }
+      await db.collection('savingsRecords').add({
+        userId: currentUser.id,
+        amount,
+        note,
+        status: 'pending',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      toast('Submitted for admin approval.');
+      document.getElementById('member-savings-note').value = '';
+      renderMyBalance();
+    }
+
+    async function renderAdminSavings() {
+      const snap = await db.collection('savingsRecords').where('status', '==', 'pending').get();
+      const pending = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const usersSnap = await db.collection('users').where('role', '==', 'member').where('approved', '==', true).get();
+      const usersMap = {};
+      usersSnap.docs.forEach(d => { usersMap[d.id] = d.data(); });
+
+      const el = document.getElementById('admin-pending-savings');
+      if (!pending.length) el.innerHTML = '<p class="empty">No pending savings submissions.</p>';
+      else el.innerHTML = pending.map(r => {
+        const u = usersMap[r.userId];
+        return `<div class="list-item">
+          <div style="flex:1;"><strong>${escapeHtml(u ? u.fullName : '?')}</strong> — KSh ${r.amount}
+            <div style="font-size:.8rem;color:#64748b;">${escapeHtml(r.note||'')} · ${fmtDate(r.createdAt)}</div></div>
+          <button class="btn btn-success btn-sm" onclick="adminAcceptSavings('${r.id}')">Accept</button>
+          <button class="btn btn-danger btn-sm" onclick="adminDeclineSavings('${r.id}')">Decline</button>
+        </div>`;
+      }).join('');
+
+      document.getElementById('admin-savings-table').innerHTML = usersSnap.docs.map(d => {
+        const m = d.data();
+        return `<tr><td>${escapeHtml(m.fullName)}</td><td>${m.savings || 0}</td></tr>`;
+      }).join('') || '<tr><td colspan="2" class="empty">No members</td></tr>';
+    }
+
+    async function adminAcceptSavings(id) {
+      const ref = db.collection('savingsRecords').doc(id);
+      const snap = await ref.get();
+      if (!snap.exists || snap.data().status !== 'pending') return;
+      const r = snap.data();
+      await ref.update({ status: 'confirmed', confirmedAt: firebase.firestore.FieldValue.serverTimestamp() });
+      await db.collection('users').doc(r.userId).update({
+        savings: firebase.firestore.FieldValue.increment(r.amount)
+      });
+      toast('Accepted.');
+      renderAdminSavings();
+    }
+
+    async function adminDeclineSavings(id) {
+      await db.collection('savingsRecords').doc(id).update({
+        status: 'declined',
+        confirmedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      toast('Declined.');
+      renderAdminSavings();
+    }
+
+    // ---------- WITHDRAWALS ----------
+    async function renderWithdraw() {
+      document.getElementById('withdraw-balance-stats').innerHTML =
+        `<div class="stat-card"><div class="value">${currentUser.savings || 0}</div><div class="label">Available</div></div>`;
+      const snap = await db.collection('withdrawals').where('userId', '==', currentUser.id).get();
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a,b) => (b.createdAt?.seconds||0) - (a.createdAt?.seconds||0));
+      document.getElementById('my-withdrawals').innerHTML = list.length
+        ? list.map(w => {
+            let badge = w.status === 'pending'
+              ? `<span class="badge badge-pending">Pending</span> T:${w.treasurerApproved?'✓':'○'} C:${w.chairApproved?'✓':'○'}`
+              : w.status === 'approved' ? '<span class="badge badge-approved">Approved</span>'
+              : '<span class="badge badge-declined">Declined</span>';
+            return `<div class="list-item"><div style="flex:1;"><strong>KSh ${w.amount}</strong> · ${escapeHtml(w.note||'')}
+              <div style="font-size:.8rem;color:#64748b;">${fmtDate(w.createdAt)}</div></div>${badge}</div>`;
+          }).join('')
+        : '<p class="empty">No requests yet.</p>';
+    }
+
+    async function requestWithdrawal() {
+      const err = document.getElementById('withdraw-error');
+      err.classList.add('hidden');
+      const amount = parseFloat(document.getElementById('withdraw-amount').value);
+      const note = document.getElementById('withdraw-note').value.trim();
+      const balance = currentUser.savings || 0;
+      if (!amount || amount <= 0) {
+        err.className = 'msg msg-error'; err.textContent = 'Enter a valid amount.'; err.classList.remove('hidden'); return;
+      }
+      if (amount > balance) {
+        err.className = 'msg msg-error';
+        err.textContent = `Insufficient balance. You only have KSh ${balance}.`;
+        err.classList.remove('hidden');
+        return;
+      }
+      const existing = await db.collection('withdrawals')
+        .where('userId', '==', currentUser.id).where('status', '==', 'pending').get();
+      if (!existing.empty) {
+        err.className = 'msg msg-warning'; err.textContent = 'You already have a pending request.'; err.classList.remove('hidden'); return;
+      }
+      await db.collection('withdrawals').add({
+        userId: currentUser.id,
+        amount, note,
+        status: 'pending',
+        treasurerApproved: false,
+        chairApproved: false,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      toast('Withdrawal requested.');
+      document.getElementById('withdraw-amount').value = '';
+      renderWithdraw();
+    }
+
+    async function renderAdminWithdrawals() {
+      const snap = await db.collection('withdrawals').get();
+      const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const pending = all.filter(w => w.status === 'pending');
+      const past = all.filter(w => w.status !== 'pending').slice(0, 15);
+      const usersSnap = await db.collection('users').get();
+      const umap = {};
+      usersSnap.docs.forEach(d => { umap[d.id] = d.data(); });
+
+      const isT = currentUser.role === 'admin';
+      const isC = currentUser.role === 'chairperson';
+
+      document.getElementById('admin-pending-withdrawals').innerHTML = pending.length
+        ? pending.map(w => {
+            const u = umap[w.userId];
+            let actions = '';
+            if (isT) {
+              actions += w.treasurerApproved
+                ? '<span class="badge badge-approved">Treasurer ✓</span> '
+                : `<button class="btn btn-success btn-sm" onclick="approveWithdrawal('${w.id}','treasurer')">✓ Treasurer</button> `;
+              actions += `<button class="btn btn-danger btn-sm" onclick="declineWithdrawal('${w.id}')">Decline</button>`;
+            } else if (isC) {
+              actions += w.chairApproved
+                ? '<span class="badge badge-approved">Chair ✓</span> '
+                : `<button class="btn btn-success btn-sm" onclick="approveWithdrawal('${w.id}','chair')">✓ Chairperson</button> `;
+              actions += `<button class="btn btn-danger btn-sm" onclick="declineWithdrawal('${w.id}')">Decline</button>`;
+            }
+            return `<div class="list-item"><div style="flex:1;">
+              <strong>${escapeHtml(u?u.fullName:'?')}</strong> — KSh ${w.amount}
+              <div style="font-size:.8rem;">T:${w.treasurerApproved?'✓':'○'} C:${w.chairApproved?'✓':'○'} · ${fmtDate(w.createdAt)}</div>
+              </div><div style="display:flex;gap:.35rem;flex-wrap:wrap;">${actions}</div></div>`;
+          }).join('')
+        : '<p class="empty">No pending withdrawals.</p>';
+
+      document.getElementById('admin-past-withdrawals').innerHTML = past.length
+        ? past.map(w => {
+            const u = umap[w.userId];
+            const badge = w.status === 'approved' ? 'badge-approved' : 'badge-declined';
+            return `<div class="list-item"><div style="flex:1;">${escapeHtml(u?u.fullName:'?')} — KSh ${w.amount}</div>
+              <span class="badge ${badge}">${w.status}</span></div>`;
+          }).join('')
+        : '<p class="empty">None.</p>';
+    }
+
+    async function approveWithdrawal(id, by) {
+      const ref = db.collection('withdrawals').doc(id);
+      const snap = await ref.get();
+      if (!snap.exists || snap.data().status !== 'pending') return;
+      const w = snap.data();
+      const updates = {};
+      if (by === 'treasurer' && currentUser.role === 'admin') updates.treasurerApproved = true;
+      else if (by === 'chair' && currentUser.role === 'chairperson') updates.chairApproved = true;
+      else { toast('Not allowed.', 'error'); return; }
+
+      const nextT = updates.treasurerApproved !== undefined ? updates.treasurerApproved : w.treasurerApproved;
+      const nextC = updates.chairApproved !== undefined ? updates.chairApproved : w.chairApproved;
+
+      if (nextT && nextC) {
+        const userRef = db.collection('users').doc(w.userId);
+        const uSnap = await userRef.get();
+        const bal = (uSnap.data().savings || 0);
+        if (bal < w.amount) {
+          await ref.update({ ...updates, status: 'declined', completedAt: firebase.firestore.FieldValue.serverTimestamp() });
+          toast('Insufficient balance — declined.', 'error');
+        } else {
+          await userRef.update({ savings: firebase.firestore.FieldValue.increment(-w.amount) });
+          await ref.update({
+            ...updates,
+            status: 'approved',
+            completedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          if (currentUser.id === w.userId) currentUser.savings = bal - w.amount;
+          toast('Fully approved. Savings deducted.');
+        }
+      } else {
+        await ref.update(updates);
+        toast(by === 'treasurer' ? 'Treasurer approved. Waiting for Chairperson.' : 'Chairperson approved. Waiting for Treasurer.');
+      }
+      renderAdminWithdrawals();
+    }
+
+    async function declineWithdrawal(id) {
+      if (!confirm('Decline this withdrawal?')) return;
+      await db.collection('withdrawals').doc(id).update({
+        status: 'declined',
+        completedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      toast('Declined.');
+      renderAdminWithdrawals();
+    }
+
+    // ---------- PROFILE ----------
+    async function renderProfile() {
+      const isStaff = currentUser.role === 'admin' || currentUser.role === 'chairperson';
+      document.getElementById('profile-title').textContent = isStaff ? '🔐 My Account' : '👤 My Profile';
+      document.getElementById('profile-incomplete-msg').classList.toggle('hidden', isStaff || currentUser.profileComplete);
+      const prev = document.getElementById('profile-avatar-preview');
+      const ph = document.getElementById('profile-avatar-placeholder');
+      if (currentUser.profilePicture) {
+        prev.src = currentUser.profilePicture; prev.style.display = 'block'; ph.style.display = 'none';
+      } else {
+        prev.style.display = 'none'; ph.style.display = 'flex';
+        ph.textContent = (currentUser.fullName || '?').charAt(0).toUpperCase();
+      }
+      document.getElementById('profile-fullname').value = currentUser.fullName || '';
+      document.getElementById('profile-email').value = currentUser.email || '';
+      document.getElementById('profile-phone').value = currentUser.phone || '';
+      document.getElementById('profile-phone2').value = currentUser.phone2 || '';
+      document.getElementById('profile-idnumber').value = currentUser.idNumber || '';
+      document.getElementById('profile-location').value = currentUser.location || '';
+    }
+
+    async function saveProfileInfo() {
+      const fullName = document.getElementById('profile-fullname').value.trim();
+      const phone = document.getElementById('profile-phone').value.trim();
+      const email = document.getElementById('profile-email').value.trim();
+      const phone2 = document.getElementById('profile-phone2').value.trim();
+      const idNumber = document.getElementById('profile-idnumber').value.trim();
+      const location = document.getElementById('profile-location').value.trim();
+      if (!fullName) { toast('Full name required.', 'error'); return; }
+      if (currentUser.role === 'member' && (!email || !phone || !idNumber || !location)) {
+        toast('Fill Full Name, Email, Phone, ID Number and Location.', 'error'); return;
+      }
+      const profileComplete = currentUser.role !== 'member' || !!(fullName && email && phone && idNumber && location);
+      await db.collection('users').doc(currentUser.id).update({
+        fullName, phone, phone2, idNumber, location, profileComplete
+      });
+      currentUser = { ...currentUser, fullName, phone, phone2, idNumber, location, profileComplete };
+      toast('Profile saved!');
+      if (profileComplete && currentUser.role === 'member') showView('dashboard');
+      else renderProfile();
+    }
+
+    async function saveProfilePictureUrl() {
+      const url = document.getElementById('profile-pic-url').value.trim();
+      await db.collection('users').doc(currentUser.id).update({ profilePicture: url || null });
+      currentUser.profilePicture = url || null;
+      toast('Picture updated.');
+      renderProfile();
+    }
+
+    async function changeOwnPassword() {
+      const next = document.getElementById('pw-new-self').value;
+      const confirm = document.getElementById('pw-confirm').value;
+      if (!next || next.length < 6) { toast('Password min 6 characters.', 'error'); return; }
+      if (next !== confirm) { toast('Passwords do not match.', 'error'); return; }
+      try {
+        await auth.currentUser.updatePassword(next);
+        toast('Password updated.');
+        document.getElementById('pw-new-self').value = '';
+        document.getElementById('pw-confirm').value = '';
+      } catch (e) {
+        toast(e.message + ' (You may need to log out and log in again first.)', 'error');
+      }
+    }
+
+    // ---------- PAYOUT ----------
+    function addPayoutRow(name, date) {
+      const tbody = document.getElementById('payout-builder-body');
+      const n = tbody.children.length + 1;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${n}</td>
+        <td><input class="payout-name" value="${escapeHtml(name||'')}" style="width:100%;padding:.5rem;border:2px solid var(--border);border-radius:.5rem;" /></td>
+        <td><input type="date" class="payout-date" value="${date||''}" style="width:100%;padding:.5rem;border:2px solid var(--border);border-radius:.5rem;" /></td>
+        <td><button class="btn btn-danger btn-sm" onclick="this.closest('tr').remove()">✕</button></td>`;
+      tbody.appendChild(tr);
+    }
+
+    async function renderAdminPayout() {
+      const tbody = document.getElementById('payout-builder-body');
+      if (tbody.children.length === 0) {
+        const snap = await db.collection('users').where('role','==','member').where('approved','==',true).get();
+        if (snap.empty) { addPayoutRow(); addPayoutRow(); }
+        else snap.docs.forEach(d => addPayoutRow(d.data().fullName, ''));
+      }
+      const pay = await db.collection('meta').doc('payoutList').get();
+      const el = document.getElementById('current-payout-admin');
+      if (!pay.exists) { el.innerHTML = '<p class="empty">No list uploaded.</p>'; return; }
+      const pl = pay.data();
+      el.innerHTML = `<h3>${escapeHtml(pl.title)}</h3>
+        <table><thead><tr><th>#</th><th>Name</th><th>Date</th></tr></thead><tbody>
+        ${pl.order.map(o => `<tr><td>${o.position}</td><td>${escapeHtml(o.name)}</td><td>${o.expectedDate||'—'}</td></tr>`).join('')}
+        </tbody></table>
+        <button class="btn btn-danger btn-sm" style="margin-top:.5rem;" onclick="clearPayoutList()">Clear</button>`;
+    }
+
+    async function uploadPayoutList() {
+      const title = document.getElementById('payout-title').value.trim() || 'Payout Order';
+      const rows = [...document.querySelectorAll('#payout-builder-body tr')];
+      const order = [];
+      rows.forEach(tr => {
+        const name = tr.querySelector('.payout-name').value.trim();
+        const date = tr.querySelector('.payout-date').value;
+        if (name) order.push({ name, expectedDate: date || null, position: order.length + 1 });
+      });
+      if (!order.length) { toast('Add names.', 'error'); return; }
+      await db.collection('meta').doc('payoutList').set({
+        title, order,
+        uploadedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        uploadedBy: currentUser.id
+      });
+      toast('Payout list uploaded for all members.');
+      renderAdminPayout();
+    }
+
+    async function clearPayoutList() {
+      if (!confirm('Clear payout list?')) return;
+      await db.collection('meta').doc('payoutList').delete();
+      toast('Cleared.');
+      renderAdminPayout();
+    }
+
+    async function renderPayoutOrderMember() {
+      const el = document.getElementById('member-payout-list');
+      const pay = await db.collection('meta').doc('payoutList').get();
+      if (!pay.exists) { el.innerHTML = '<p class="empty">No payout list yet.</p>'; return; }
+      const pl = pay.data();
+      el.innerHTML = `<p><strong>${escapeHtml(pl.title)}</strong></p>
+        <table><thead><tr><th>#</th><th>Name</th><th>Expected date</th></tr></thead><tbody>
+        ${pl.order.map(o => `<tr><td>${o.position}</td><td>${escapeHtml(o.name)}</td><td>${o.expectedDate||'—'}</td></tr>`).join('')}
+        </tbody></table>`;
+    }
+
+    // ---------- CONTRIBUTIONS ----------
+    async function adminCreateContribList() {
+      const title = document.getElementById('admin-contrib-title').value.trim() || 'Contribution List';
+      const raw = document.getElementById('admin-contrib-names').value.trim();
+      const receiverId = document.getElementById('admin-contrib-receiver').value;
+      if (!raw || !receiverId) { toast('Names and receiver required.', 'error'); return; }
+      const names = raw.split(/\n/).map(s => s.trim()).filter(Boolean);
+      const expires = new Date(); expires.setDate(expires.getDate() + 5);
+      await db.collection('contributionLists').add({
+        title,
+        items: names.map(name => ({ name, ticked: false, tickedAt: null })),
+        createdBy: currentUser.id,
+        assignedTo: receiverId,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        expiresAt: expires.toISOString()
+      });
+      toast('List created and assigned.');
+      document.getElementById('admin-contrib-names').value = '';
+      renderAdminContributions();
+    }
+
+    async function renderAdminContributions() {
+      const sel = document.getElementById('admin-contrib-receiver');
+      const mem = await db.collection('users').where('role','==','member').where('approved','==',true).get();
+      sel.innerHTML = mem.docs.map(d => {
+        const m = d.data();
+        return `<option value="${d.id}">${escapeHtml(m.fullName)} (@${escapeHtml(m.username||'')})</option>`;
+      }).join('') || '<option value="">No members</option>';
+
+      const snap = await db.collection('contributionLists').orderBy('createdAt', 'desc').get();
+      const el = document.getElementById('admin-contrib-lists');
+      if (snap.empty) { el.innerHTML = '<p class="empty">No lists.</p>'; return; }
+      const users = {};
+      mem.docs.forEach(d => { users[d.id] = d.data(); });
+      el.innerHTML = snap.docs.map(d => renderContribCard(d.id, d.data(), users, true)).join('');
+    }
+
+    async function renderContribute() {
+      const snap = await db.collection('contributionLists').where('assignedTo', '==', currentUser.id).get();
+      const el = document.getElementById('contribute-controls');
+      if (snap.empty) { el.innerHTML = '<p class="empty">No list assigned to you yet.</p>'; return; }
+      el.innerHTML = snap.docs.map(d => renderContribCard(d.id, d.data(), {}, true)).join('');
+    }
+
+    function renderContribCard(id, cl, users, canTick) {
+      const expired = isExpired(cl.expiresAt);
+      const left = daysLeft(cl.expiresAt);
+      const receiver = users[cl.assignedTo];
+      const isAdminUser = currentUser.role === 'admin';
+      const isReceiver = cl.assignedTo === currentUser.id;
+      const allowTick = !expired && canTick && (isAdminUser || isReceiver);
+      return `<div class="panel" style="margin-bottom:1rem;padding:1rem;">
+        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
+          <div><strong>${escapeHtml(cl.title)}</strong>
+            <div style="font-size:.8rem;color:#64748b;">
+              ${receiver ? 'Assigned to '+escapeHtml(receiver.fullName)+' · ' : ''}
+              ${expired ? '<span class="badge badge-declined">Locked</span>' : '<span class="badge badge-approved">'+left+' day(s) left</span>'}
+            </div>
+          </div>
+          ${isAdminUser ? `<button class="btn btn-danger btn-sm" onclick="deleteContribList('${id}')">Delete</button>` : ''}
+        </div>
+        <div style="margin-top:.75rem;">
+          ${cl.items.map((item, idx) => `
+            <div class="list-item ${item.ticked?'ticked':''} ${expired?'expired':''}">
+              <input type="checkbox" ${item.ticked?'checked':''} ${!allowTick?'disabled':''}
+                onchange="toggleContribTick('${id}',${idx},this.checked)" />
+              <span style="flex:1;">${escapeHtml(item.name)}</span>
+            </div>`).join('')}
+        </div>
+        <p style="margin-top:.5rem;font-size:.85rem;">Paid: ${cl.items.filter(i=>i.ticked).length} / ${cl.items.length}</p>
+      </div>`;
+    }
+
+    async function toggleContribTick(listId, idx, checked) {
+      const ref = db.collection('contributionLists').doc(listId);
+      const snap = await ref.get();
+      if (!snap.exists) return;
+      const cl = snap.data();
+      if (isExpired(cl.expiresAt)) {
+        toast('List locked (5 days over).', 'error');
+        refreshView(currentUser.role === 'admin' ? 'admin-contributions' : 'contribute');
+        return;
+      }
+      const items = cl.items.slice();
+      items[idx] = {
+        ...items[idx],
+        ticked: checked,
+        tickedAt: checked ? new Date().toISOString() : null
+      };
+      await ref.update({ items });
+      if (currentUser.role === 'admin') renderAdminContributions();
+      else renderContribute();
+    }
+
+    async function deleteContribList(id) {
+      if (!confirm('Delete this list?')) return;
+      await db.collection('contributionLists').doc(id).delete();
+      toast('Deleted.');
+      renderAdminContributions();
+    }
+
+    // ---------- NEWS / QUESTIONS ----------
+    async function postNews() {
+      const title = document.getElementById('news-title').value.trim();
+      const content = document.getElementById('news-content').value.trim();
+      if (!title || !content) { toast('Title and content required.', 'error'); return; }
+      await db.collection('news').add({
+        title, content,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        authorId: currentUser.id
+      });
+      document.getElementById('news-title').value = '';
+      document.getElementById('news-content').value = '';
+      toast('Published.');
+      renderAdminNews();
+    }
+
+    async function renderNews() {
+      const snap = await db.collection('news').orderBy('createdAt', 'desc').limit(20).get();
+      const el = document.getElementById('news-list');
+      if (snap.empty) el.innerHTML = '<p class="empty">No news.</p>';
+      else el.innerHTML = snap.docs.map(d => {
+        const n = d.data();
+        return `<div class="news-item"><div class="meta">${fmtDate(n.createdAt)}</div>
+          <strong>${escapeHtml(n.title)}</strong><p style="margin-top:.4rem;white-space:pre-wrap;">${escapeHtml(n.content)}</p></div>`;
+      }).join('');
+    }
+
+    async function renderAdminNews() {
+      const snap = await db.collection('news').orderBy('createdAt', 'desc').get();
+      document.getElementById('admin-news-list').innerHTML = snap.docs.map(d => {
+        const n = d.data();
+        return `<div class="list-item"><div style="flex:1;"><strong>${escapeHtml(n.title)}</strong>
+          <div style="font-size:.8rem;color:#64748b;">${fmtDate(n.createdAt)}</div></div>
+          <button class="btn btn-danger btn-sm" onclick="deleteNews('${d.id}')">Delete</button></div>`;
+      }).join('') || '<p class="empty">None.</p>';
+    }
+
+    async function deleteNews(id) {
+      await db.collection('news').doc(id).delete();
+      toast('Deleted.');
+      renderAdminNews();
+    }
+
+    async function submitQuestion() {
+      const text = document.getElementById('question-text').value.trim();
+      if (!text) { toast('Write a question.', 'error'); return; }
+      await db.collection('questions').add({
+        userId: currentUser.id,
+        text,
+        answer: null,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      document.getElementById('question-text').value = '';
+      toast('Sent to admin.');
+      renderMyQuestions();
+    }
+
+    async function renderMyQuestions() {
+      const snap = await db.collection('questions').where('userId', '==', currentUser.id).get();
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a,b) => (b.createdAt?.seconds||0) - (a.createdAt?.seconds||0));
+      document.getElementById('my-questions').innerHTML = list.length
+        ? list.map(q => `<div class="news-item"><div class="meta">${fmtDate(q.createdAt)}</div>
+            <p><strong>Q:</strong> ${escapeHtml(q.text)}</p>
+            ${q.answer ? `<p style="margin-top:.5rem;"><strong>A:</strong> ${escapeHtml(q.answer)}</p>`
+              : '<p style="margin-top:.5rem;color:#92400e;">Waiting for reply…</p>'}</div>`).join('')
+        : '<p class="empty">No questions.</p>';
+    }
+
+    async function renderAdminQuestions() {
+      const snap = await db.collection('questions').orderBy('createdAt', 'desc').get();
+      const usersSnap = await db.collection('users').get();
+      const umap = {};
+      usersSnap.docs.forEach(d => { umap[d.id] = d.data(); });
+      document.getElementById('admin-questions-list').innerHTML = snap.docs.map(d => {
+        const q = d.data();
+        const u = umap[q.userId];
+        return `<div class="news-item" style="margin-bottom:1rem;">
+          <div class="meta">${fmtDate(q.createdAt)} · ${escapeHtml(u?u.fullName:'?')}</div>
+          <p><strong>Q:</strong> ${escapeHtml(q.text)}</p>
+          ${q.answer ? `<p><strong>A:</strong> ${escapeHtml(q.answer)}</p>`
+            : `<textarea id="ans-${d.id}" rows="2" style="width:100%;margin-top:.5rem;padding:.5rem;border-radius:.5rem;border:2px solid var(--border);"></textarea>
+               <button class="btn btn-sm btn-primary" style="margin-top:.5rem;" onclick="answerQuestion('${d.id}')">Reply</button>`}
+        </div>`;
+      }).join('') || '<p class="empty">No questions.</p>';
+    }
+
+    async function answerQuestion(id) {
+      const answer = document.getElementById('ans-' + id).value.trim();
+      if (!answer) { toast('Write an answer.', 'error'); return; }
+      await db.collection('questions').doc(id).update({
+        answer,
+        answeredAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      toast('Replied.');
+      renderAdminQuestions();
+    }
+
+    // ---------- SETTINGS ----------
+    function renderAdminSettings() {
+      document.getElementById('setting-weekly').value = getWeeklyAmount();
+    }
+
+    async function saveSettings() {
+      if (currentUser.role !== 'admin') return;
+      const val = parseFloat(document.getElementById('setting-weekly').value);
+      if (!val || val <= 0) { toast('Invalid amount.', 'error'); return; }
+      await db.collection('settings').doc('main').set({ weeklyContribution: val }, { merge: true });
+      settingsCache.weeklyContribution = val;
+      document.getElementById('settings-status').textContent = 'Saved: KSh ' + val;
+      toast('Settings saved.');
+    }
+
+    function runCalc() {
+      const a = parseFloat(document.getElementById('calc-a').value) || 0;
+      const b = parseFloat(document.getElementById('calc-b').value) || 0;
+      const op = document.getElementById('calc-op').value;
+      let r = '—';
+      if (op === 'add') r = a + b;
+      else if (op === 'sub') r = a - b;
+      else if (op === 'mul') r = a * b;
+      else if (op === 'div') r = b === 0 ? 'Error' : (a / b).toFixed(2);
+      else if (op === 'total') r = `Weekly pool ≈ KSh ${a * b}`;
+      document.getElementById('calc-result').textContent = r;
+    }
+
+    // ---------- BOOT ----------
+    if (initFirebase()) {
+      auth.onAuthStateChanged(async (user) => {
+        if (!user) {
+          setLoading(false);
+          document.getElementById('app').style.display = 'none';
+          document.getElementById('auth-screen').style.display = 'flex';
+          return;
+        }
+        setLoading(true);
+        try {
+          settingsCache = await ensureSettings();
+          currentUser = await loadUserProfile(user.uid);
+          if (currentUser.role === 'member' && !currentUser.approved) {
+            await auth.signOut();
+            showMsg('auth-message', 'Your account is waiting for approval by the Treasurer or Chairperson.', 'warning');
+            setLoading(false);
+            return;
+          }
+          enterApp();
+        } catch (e) {
+          console.error(e);
+          showMsg('auth-message', e.message, 'error');
+          await auth.signOut();
+          setLoading(false);
+        }
+      });
+    }
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('./sw.js').catch(function (err) {
+          console.log('SW registration failed', err);
+        });
+      });
+    }
+  </script>
+</body>
+</html>
